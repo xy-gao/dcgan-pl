@@ -71,6 +71,13 @@ class DCGAN(LightningModule):
                 x.size(0), Z_DIM, 1, 1, device=device, requires_grad=True
             )
             self.generated_images = self.generator(z_noise)
+            g_loss = nn.BCELoss()(
+                self.discriminator(self.generated_images).view(-1, 1).squeeze(1),
+                true_label,
+            )
+            self.log("g_loss", g_loss)
+            return g_loss
+        if optimizer_idx == 1:
             d_true_loss = nn.BCELoss()(
                 self.discriminator(x).view(-1, 1).squeeze(1), true_label
             )
@@ -84,14 +91,6 @@ class DCGAN(LightningModule):
             self.log("d_loss", d_loss)
             return d_loss
 
-        if optimizer_idx == 1:
-            g_loss = nn.BCELoss()(
-                self.discriminator(self.generated_images).view(-1, 1).squeeze(1),
-                true_label,
-            )
-            self.log("g_loss", g_loss)
-            return g_loss
-
     def configure_optimizers(self):
         optimizerD = torch.optim.Adam(
             self.discriminator.parameters(), lr=2e-4, betas=(0.5, 0.999)
@@ -99,7 +98,7 @@ class DCGAN(LightningModule):
         optimizerG = torch.optim.Adam(
             self.generator.parameters(), lr=2e-4, betas=(0.5, 0.999)
         )
-        return optimizerD, optimizerG
+        return optimizerG, optimizerD
 
     def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
         if batch_idx % 50 == 0:
